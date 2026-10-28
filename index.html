@@ -373,6 +373,19 @@ body.ov-open { overflow: hidden; }
 .scroll-paper .sl.wait { color: var(--muted); letter-spacing: 0.4em; animation: slWait 1.6s ease-in-out infinite; }
 @keyframes slIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes slWait { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.9; } }
+
+/* 제작 결과 배너: fade in → 유지 → fade out (5초) */
+#result-banner { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); z-index: 300; pointer-events: none; width: min(92vw, 420px); opacity: 0; }
+#result-banner.show { animation: rb-fade 5s ease-in-out forwards; }
+.rb-card { display: grid; gap: 4px; justify-items: center; text-align: center; padding: 18px 22px; border-radius: var(--radius, 14px); background: var(--card, #fff); border: 1px solid var(--line-strong); box-shadow: 0 10px 40px rgba(0,0,0,.22); }
+.rb-card b { font-family: var(--font-display); font-size: 24px; font-weight: 400; }
+.rb-card span { color: var(--muted); font-size: 14px; }
+.rb-card.win { border-top: 4px solid var(--accent); }
+.rb-card.win b { color: var(--accent); }
+.rb-card.lose { border-top: 4px solid var(--ember); }
+.rb-card.lose b { color: var(--ember); }
+@keyframes rb-fade { 0% { opacity: 0; transform: translateX(-50%) translateY(8px); } 12% { opacity: 1; transform: translateX(-50%) translateY(0); } 78% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #result-banner.show { animation-name: rb-fade-rm; } @keyframes rb-fade-rm { 0% { opacity: 0; } 12% { opacity: 1; } 78% { opacity: 1; } 100% { opacity: 0; } } }
 </style>
 
 <div class="app">
@@ -4226,6 +4239,21 @@ const DATA = {
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { toastEl.hidden = true; }, 6000);
   }
+  // 제작 결과: 화면 가운데에 글이 서서히 나타났다가(fade in) 5초 뒤 서서히 사라진다(fade out). 클릭을 막지 않는다.
+  let bannerTimer = null;
+  function resultBanner(ok, title, detail) {
+    let el = document.getElementById('result-banner');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'result-banner'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite');
+      document.body.appendChild(el);
+    }
+    clearTimeout(bannerTimer);
+    el.className = ''; void el.offsetWidth;                 // 연달아 만들면 연출을 처음부터 다시 시작한다
+    el.innerHTML = '<div class="rb-card ' + (ok ? 'win' : 'lose') + '"><b>' + title + '</b>' + (detail ? '<span>' + detail + '</span>' : '') + '</div>';
+    el.className = 'show';
+    bannerTimer = setTimeout(() => { el.className = ''; el.innerHTML = ''; }, 5000);
+  }
   function beep() {
     try {
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
@@ -4688,7 +4716,7 @@ const DATA = {
   // 일지는 탭으로 옮겼다. 열려 있을 때만 맨 아래(가장 최근)로 스크롤한다.
   function renderLog() {
     const el = $('#log');
-    if (el) el.scrollTop = el.scrollHeight;
+    if (el) el.scrollTop = 0;          // 최근 기록이 맨 위에 있다
   }
   function logLine(l) {
     const pinned = pins.some((p) => p.id === l.id);
@@ -4699,7 +4727,7 @@ const DATA = {
     let h = '<div class="sec">고정한 기록 · ' + pins.length + ' / ' + PIN_MAX + '</div>';
     h += pins.length ? '<div class="log pinned">' + pins.map(logLine).join('') + '</div>'
       : '<div class="empty">남겨 두고 싶은 기록의 "고정"을 누르면 여기 맨 위에 모입니다.</div>';
-    return h + '<div class="sec">일지</div><div class="log" id="log" role="log" aria-live="polite">' + logs.map(logLine).join('') + '</div>';
+    return h + '<div class="sec">일지</div><div class="log" id="log" role="log" aria-live="polite">' + logs.slice().reverse().map(logLine).join('') + '</div>';
   }
 
   // 예리 Lv.5부터 재료별 채집 확률이 보이고, Lv.15(천리안) 전에는 아직 손에 넣어 본 적 없는 재료가 ??? 로 가려진다
@@ -5985,15 +6013,17 @@ const DATA = {
       const r = G.brew(ids);
       const back = r.refunded ? ' 재료 ' + herbName(r.refunded) + ' 하나는 건졌다.' : '';
       const cost = r.cost !== undefined ? ' · 마나 ' + r.cost + (r.free ? ' (무상 시전)' : '') : '';
-      if (r.code === 'fizzle') { picked = []; log(r.message + ' (성공 확률 ' + r.chance + '%' + cost + ')' + back, 'bad'); return; }
+      if (r.code === 'fizzle') { picked = []; log(r.message + ' (성공 확률 ' + r.chance + '%' + cost + ')' + back, 'bad'); resultBanner(false, '제작 실패', r.message); return; }
       if (!r.ok) return log(r.message, 'bad');
       picked = [];
       log(r.message + ' (성공 확률 ' + r.chance + '%' + cost + ')' + back, 'brew');
+      resultBanner(true, '제작 성공', r.message);
     },
     mixmany(el) {
       const r = G.brewMany(picked.slice(), Number(el.dataset.n));
       if (!r.ok) return log(r.message, 'bad');
       const made = Object.keys(r.potions).map((k) => k + ' ×' + r.potions[k]).join(', ');
+      resultBanner(r.wins > 0, r.wins > 0 ? '제작 성공' : '제작 실패', r.attempts + '번 중 성공 ' + r.wins + ' · 실패 ' + r.fails + (made ? ' — ' + made : ''));
       log(r.attempts + '번 끓였다. 성공 ' + r.wins + ' · 실패 ' + r.fails + (made ? ' — ' + made : '') + ' (마나 ' + r.cost + ')' + (r.stop ? ' 중단: ' + r.stop : ''), r.wins ? 'brew' : 'bad');
       picked = picked.filter((id) => G.herbCount(id) > 0);
     },
@@ -6001,6 +6031,7 @@ const DATA = {
       const r = G.craftMany(el.dataset.id, Number(el.dataset.n));
       if (!r.ok) return log(r.message, 'bad');
       log(r.name + ' ×' + r.made + '을(를) 만들었다. 재료: ' + pickText(r.used) + ' (마나 ' + r.cost + ')' + (r.stop ? ' 중단: ' + r.stop : ''), 'brew');
+      resultBanner(true, '제작 성공', r.name + ' ×' + r.made);
     },
     talk(el) {
       const r = G.talk(el.dataset.id);
@@ -6018,6 +6049,7 @@ const DATA = {
       const r = G.craftGood(el.dataset.id);
       if (!r.ok) return log(r.message, 'bad');
       log(r.message + (Object.keys(r.used).length ? ' 재료: ' + pickText(r.used) : '') + ' (마나 ' + r.cost + ')', 'brew');
+      resultBanner(true, '제작 성공', r.message);
     },
     rest() {
       const r = G.rest();
