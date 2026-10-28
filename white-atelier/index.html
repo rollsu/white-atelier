@@ -1,0 +1,126 @@
+<!doctype html>
+<!--
+화이트 아틀리에 설계 요약 (상세: "화이트 아틀리에 설계 스펙.md", 인터뷰 2026-10-27)
+- 정체성: 방치형 게임. 장기 채집만 오프라인에서 흐르며 복귀 시 한 번만 정산. 시계 + 한도 + 역행 감지.
+- 장기 채집은 경험치와 고등급 재료 전용, 단기 채집은 접속 중 용돈벌이. 중앙 마을에서는 채집 불가.
+- 흐트러짐과 연속 기록은 폐지하고 날씨(짧게)와 계절(길게)로 대체. 정화와 보호막 물약은 날씨 대비 효과로 교체.
+- 마을 레벨 하나(5단계)로 거점, 거래소, 도구 거리를 함께 확장. 재료는 금화, 납품, 의뢰 실적.
+- 의뢰 슬롯 5개 고정, 특수 티켓으로 5건 추가(소모, 환영 패키지 포함), 시세 연동 수요, 마을 사람 특수 의뢰.
+- 연금술사 레벨 상한 100, 마을 확장이 선행. 31~100은 전문화 트리(저레벨엔 한 갈래의 최종 노드만, 결국 모두 가능).
+- 창고 용량 제한, 즐겨찾기, 판매 잠금. 가득 차면 수확물 보류. 제작은 즉시 완료 + 대량 제작 버튼.
+- 완료 알림은 브라우저 알림과 소리. UI는 좌측 사이드바 + 페이지 분리(데스크톱 우선).
+- 저장 초기화 허용, 내보내기와 불러오기 추가. 구현 순서: 기반, 경제, 콘텐츠.
+- 이 주석은 설계 메모이며 아직 코드에 반영되지 않은 항목이 대부분이다.
+-->
+<html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="stylesheet" href="css/base.css"></head><body>
+<title>화이트 아틀리에</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/style.css">
+
+<div class="app">
+  <header class="top">
+    <h1>화이트 아틀리에</h1>
+    <div class="where" id="where"></div>
+    <details class="menu" id="menu">
+      <summary>설정</summary>
+      <div class="menu-body">
+        <div class="menu-sec"><h3>화면 색</h3>
+          <div class="seg theme-seg" role="group" aria-label="화면 색상"><button data-theme-set="auto" aria-pressed="true">자동</button><button data-theme-set="light" aria-pressed="false">라이트</button><button data-theme-set="dark" aria-pressed="false">다크</button></div>
+        </div>
+        <div class="menu-sec"><h3>완료 알림</h3>
+          <div class="actions"><button class="btn small" id="notifybtn" data-act="toggle-notify" aria-pressed="true">알림 켜짐 · 끄기</button>
+            <button class="btn small" data-act="test-notify">시험</button>
+            <button class="btn small" id="permbtn" data-act="ask-notify">브라우저 팝업 허용</button></div>
+          <p class="sub" id="permtxt" style="margin:6px 0 0"></p>
+          <p class="sub" style="margin:4px 0 0">장기 채집·이동이 끝나면 화면 안 알림과 소리로 알려 준다. 창을 닫아 둔 동안 끝난 것은 다시 열 때 정산된다.</p>
+        </div>
+        <div class="menu-sec"><h3>배경음</h3><div class="actions"><button class="btn small" id="bgmbtn" data-act="toggle-bgm" aria-pressed="false">배경음 꺼짐 · 켜기</button></div><p class="sub" style="margin:6px 0 0">조용한 배경음을 계절에 맞춰 들려 준다. 완료 알림이 꺼져 있으면 효과음도 나지 않는다.</p></div>
+        <div class="menu-sec"><h3>이야기</h3><div class="actions"><button class="btn small" data-act="read-letter">초대장 다시 읽기</button></div></div>
+        <div class="menu-sec"><h3>저장</h3>
+          <div class="actions"><button class="btn small" data-act="export-save">내보내기</button>
+            <button class="btn small" data-act="import-save">불러오기</button>
+            <input type="file" id="importfile" accept=".json,application/json" hidden></div>
+          <p class="sub" style="margin:6px 0 0">진행 기록은 이 브라우저에 자동 저장된다. 브라우저를 바꾸거나 기록을 지우기 전에 파일로 내보내 두자.</p>
+        </div>
+      </div>
+    </details>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <section class="panel side" aria-label="상태">
+        <div id="stats"></div>
+        <div class="lvl" id="lvl"></div>
+        <details class="more"><summary>더 보기</summary><div id="more"></div><div class="effects" id="effects"></div></details>
+      </section>
+
+      <section class="panel" aria-label="채집 타이머">
+        <div class="timer-kind" id="tkind"></div>
+        <div class="clock" id="clock">--:--</div>
+        <div class="bar" id="bar"><i id="barfill"></i></div>
+        <div class="timer-actions" id="actions"></div>
+      </section>
+
+      
+    </div>
+
+    <div class="col">
+      <section class="panel" aria-label="연금술사의 도구">
+        <div class="tabs" role="tablist" id="tabs">
+          <button class="tab" role="tab" data-tab="main">메인</button>
+          
+          <button class="tab" role="tab" data-tab="bag">가방</button>
+          <button class="tab" role="tab" data-tab="brew">연금술</button>
+          <button class="tab" role="tab" data-tab="skill">능력</button>
+          
+          <button class="tab" role="tab" data-tab="book">도감</button>
+          <button class="tab" role="tab" data-tab="log">일지</button>
+        </div>
+        <div id="view"></div>
+      </section>
+
+      <details class="panel testbox" aria-label="테스트 도구">
+        <summary>테스트 도구 · 개발 중</summary>
+        <div class="tools">
+          <label><input type="checkbox" id="fast"> 빠른 시간 (1분 = 1초, 단기 대기 3초) — 테스트 중</label>
+          <button class="btn small" data-act="skip-timer">지금 끝내기</button>
+          <button class="btn small" data-act="give-herbs">모든 재료 +3</button>
+          <button class="btn small" data-act="give-xp">경험치 +100</button>
+          <button class="btn small" data-act="give-gold">금화 +1000</button>
+          <button class="btn small" data-act="next-weather">날씨 넘기기</button>
+          <button class="btn small" data-act="next-season">계절 넘기기</button>
+          <button class="btn small ghost" data-act="reset">처음부터 다시</button>
+        </div>
+        <p class="sub" style="margin:10px 0 0">빠른 시간 모드와 아래 버튼은 개발 중인 시험용이다.</p>
+      </details>
+    </div>
+
+    <div class="col logcol">
+      <div class="stick">
+      <section class="panel questpanel" aria-label="받은 의뢰"><h2>받은 의뢰 <span class="sub" id="questcount"></span></h2><div class="quests" id="quests"></div></section>
+      <section class="panel chat" aria-label="채팅">
+        <!-- 내용은 js/chat.js 가 채운다 -->
+      </section>
+    </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/engine.js"></script>
+<script src="js/data.js"></script>
+<script src="js/ext1.js"></script>
+<script src="js/ext2.js"></script>
+<script src="js/ext3.js"></script>
+<script src="js/ext4.js"></script>
+<script src="js/ext5.js"></script>
+<script src="js/ext6.js"></script>
+<script src="js/ext7.js"></script>
+<script src="js/ext8.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/chat.js"></script>
+
+</body></html>

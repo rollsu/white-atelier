@@ -1,0 +1,29 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        "name": {
+          ".read": "auth != null",
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isString() && newData.val().matches(/^[가-힣A-Za-z0-9_]{2,12}$/) && root.child('names').child(newData.val().toLowerCase()).val() === auth.uid"
+        }
+      }
+    },
+    "names": {
+      "$n": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() || data.val() === auth.uid)",
+        ".validate": "$n.matches(/^[가-힣a-z0-9_]{2,12}$/) && newData.val() === auth.uid"
+      }
+    },
+    "chat": {
+      "global": {
+        ".read": "auth != null",
+        "$id": {
+          ".write": "auth != null && !data.exists()",
+          ".validate": "newData.hasChildren(['uid', 'name', 'text', 't']) && newData.child('uid').val() === auth.uid && newData.child('name').val() === root.child('users').child(auth.uid).child('name').val() && newData.child('text').isString() && newData.child('text').val().length >= 1 && newData.child('text').val().length <= 200 && newData.child('t').val() === now"
+        }
+      }
+    }
+  }
+}
