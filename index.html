@@ -356,6 +356,23 @@ body.ov-open { overflow: hidden; }
 .tools label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* 이야기: 초대장 · 채집 스크롤 */
+.letter { position: relative; background: var(--surface-2); border: 1px solid var(--line-strong); border-top: 4px solid var(--ember); border-radius: 12px; padding: 26px 30px 24px; font-family: var(--font-display); line-height: 1.95; font-size: 1.02em; }
+.letter p { margin: 0 0 14px; }
+.letter .lt-seal { position: absolute; top: -22px; right: 26px; width: 44px; height: 44px; border-radius: 50%; background: var(--ember); color: var(--ember-fg); display: grid; place-items: center; font-size: 22px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25); }
+.letter .lt-to { font-size: 1.15em; color: var(--ember); }
+.letter .lt-sign { text-align: right; color: var(--muted); margin-top: 18px; }
+.letter .lt-steps { font-family: inherit; background: var(--surface); border: 1px dashed var(--line-strong); border-radius: 10px; padding: 12px 18px; line-height: 1.7; font-size: 0.92em; }
+.letter .lt-steps ol { margin: 6px 0 0; padding-left: 20px; }
+.letter .lt-actions { text-align: center; margin-top: 20px; }
+.sc-top { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.scroll-paper { display: grid; gap: 14px; background: var(--surface-2); border: 1px solid var(--line-strong); border-left: 4px solid var(--accent); border-radius: 12px; padding: 20px 24px; font-family: var(--font-display); line-height: 1.9; }
+.scroll-paper .sl { margin: 0; }
+.scroll-paper .sl.new { animation: slIn 0.9s ease both; }
+.scroll-paper .sl.wait { color: var(--muted); letter-spacing: 0.4em; animation: slWait 1.6s ease-in-out infinite; }
+@keyframes slIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes slWait { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.9; } }
 </style>
 
 <div class="app">
@@ -375,6 +392,7 @@ body.ov-open { overflow: hidden; }
           <p class="sub" id="permtxt" style="margin:6px 0 0"></p>
           <p class="sub" style="margin:4px 0 0">장기 채집·이동이 끝나면 화면 안 알림과 소리로 알려 준다. 창을 닫아 둔 동안 끝난 것은 다시 열 때 정산된다.</p>
         </div>
+        <div class="menu-sec"><h3>이야기</h3><div class="actions"><button class="btn small" data-act="read-letter">초대장 다시 읽기</button></div></div>
         <div class="menu-sec"><h3>저장</h3>
           <div class="actions"><button class="btn small" data-act="export-save">내보내기</button>
             <button class="btn small" data-act="import-save">불러오기</button>
@@ -3152,6 +3170,7 @@ const DATA = {
       s.clues = s.clues || [];
       s.counters = s.counters || { gathered: 0, crafted: 0, brewed: 0, longDone: 0, sold: 0 };
       if (s.lv5Gift === undefined) s.lv5Gift = s.townLv >= 5;
+      s.introSeen = !!s.introSeen;                     // 처음 시작할 때의 초대장을 읽었는지
       this._installSeasonGate();
       return this;
     }
@@ -3907,6 +3926,7 @@ const DATA = {
       G.state.phase = 'idle'; G.state.currentExpedition = null;
     }
     if (G.state.phase !== 'expedition') T = null;
+    if (!G.state.introSeen) UI.ov = 'intro';       // 처음 시작하는 사람에게 초대장을 펼친다
     if (!logs.length) {
       logs.push({ id: ++logSeq, t: now(), c: 'sys', m: '중앙 마을 별나루의 거점에 도착했다. 마을에서는 채집을 할 수 없으니, 지도를 펼쳐 다섯 땅으로 떠나 보자.' });
       logs.push({ id: ++logSeq, t: now(), c: 'sys', m: '모은 재료와 물약, 물건은 중앙 거래소에서 팔 수 있다. 번 돈으로 도구 거리에서 낫·곡괭이·증류기 같은 도구를 장만하자.' });
@@ -3920,9 +3940,13 @@ const DATA = {
     return u.length ? ' (효과 소진: ' + u.map((t) => EFF[t] || t).join(', ') + ')' : '';
   }
   function finish() {
+    const src = T;
     T = null;
     const r = G.completeExpedition();
     if (!r.ok) { log(r.message, 'bad'); return; }
+    if (UI.ov === 'scroll' && src && src.script) {          // 스크롤을 펼쳐 둔 채 끝나면 마지막 줄과 결과를 보여 준다
+      UI.scrollDone = { script: src.script, area: r.area, minutes: r.minutes, xp: r.xp, herbs: r.herbs.map((h) => h.name + ' ×' + h.amount).join(', ') };
+    }
     log(G.areas[r.area].name + '에서 ' + DLABEL[r.minutes] + ' 채집을 마쳤다. 경험치 +' + r.xp + ' · 예리 +' + r.abilityXp + expiredNote(r.expired), 'good');
     log('수확: ' + r.herbs.map((h) => h.name + ' ×' + h.amount).join(', ') + (r.basketExtra ? ' (바구니 덕에 ' + r.basketExtra + '번 더 뽑았다)' : ''), 'good');
     if (r.weather) log(endWeatherNote(r.weather), r.weather.bad && !r.weather.by ? 'bad' : 'sys');
@@ -3954,6 +3978,7 @@ const DATA = {
     if (G.events.length) { persist(); render(); }       // 임대료 같은 백그라운드 소식을 일지에 옮긴다
     drawTimer();
     drawMana();
+    updateScroll();
     updateTitle();
     // 날씨가 바뀌면 화면을 새로 그린다 (메인 탭의 예보와 채집 정보를 맞춘다)
     const sig = G.forecast().map((f) => f.now.id).join('|') + G.seasonInfo().id;
@@ -4497,7 +4522,7 @@ const DATA = {
     }
     if (!hub) {
       chips += '<span class="chip">단기 <b>' + G.shortLeft() + '회 남음</b></span>';
-      if (s.phase === 'expedition') note = '<p class="pc-desc">장기 채집 중이다. 끝날 때까지 이동하거나 새로 채집할 수 없다.</p>';
+      if (s.phase === 'expedition') { note = '<p class="pc-desc">장기 채집 중이다. 끝날 때까지 이동하거나 새로 채집할 수 없다.</p>'; acts = open('scroll', '채집 스크롤 펼치기', 'primary big'); }
       else acts = open('gather', '채집하기', 'primary big');
     } else if (a.id === 'camp') {
       chips += '<span class="chip">창고 <b>' + G.storageUsed() + '/' + capTxt() + '칸</b></span>';
@@ -4930,11 +4955,215 @@ const DATA = {
           (g.tool ? (g.tool === 'forge' ? '화로 Lv.' : '증류기 Lv.') + g.lv + ' 필요' : '도구 없이 만들 수 있다') + '</div></div></div>').join('') + '</div>';
   }
 
+  // ------------------------------------------------------------ 이야기: 초대장 · 채집 스크롤
+  // 처음 시작할 때 펼쳐지는 초대장. 같은 글을 설정 메뉴의 "초대장 다시 읽기"로도 볼 수 있다.
+  function letterHtml(first) {
+    return '<div class="letter">' +
+      '<div class="lt-seal" aria-hidden="true">✦</div>' +
+      '<p class="lt-to">이름 모를 손님께</p>' +
+      '<p>낯선 이여, 먼 길을 어떻게 오셨는지는 묻지 않겠습니다. 이곳 별나루에서는 별이 떨어진 자리에 길이 생기고, 그 길 끝에서 손님이 도착하곤 하니까요.</p>' +
+      '<p>당신의 손에는 이미 연금술의 온기가 깃들어 있습니다. 누가, 왜 그 힘을 주었는지는 당신도 모르실 테지요. 다만 그 능력은 이 땅의 풀과 돌, 비와 안개를 만날 때 비로소 깨어납니다.</p>' +
+      '<p>별나루는 지금 작은 마을입니다. 거점의 약초 할멈 솔이는 허리가 쑤시고, 두루의 거래소는 재료가 모자라고, 강쇠의 대장간은 일손이 부족합니다. 은빛 초원에서 구름 산맥, 푸른 물가, 잿불 화산, 속삭이는 동굴까지 — 재료는 흩어져 있고, 그것을 물약과 물건으로 바꿔 줄 사람이 필요합니다.</p>' +
+      '<p>그리고 오래된 이야기가 하나 있습니다. 고요한 숲의 뿌리 끝, 바다 너머 <b>대대륙</b>에 세계수가 잠들어 있다고요. 그 나무를 다시 키워 낸 사람은 아직 없습니다. 의뢰를 하나씩 마칠 때마다 단서가 모일 것이고, 그 길의 끝에 당신이 서 있기를 바랍니다.</p>' +
+      '<p>부디 마을을 도와주세요. 그러면 마을도 당신을 도울 것입니다.</p>' +
+      '<p class="lt-sign">별나루 회관지기 보람 올림</p>' +
+      '<div class="lt-steps"><b>첫걸음</b><ol>' +
+      '<li>지도에서 가고 싶은 곳을 눌러 [이동하기]를 누릅니다. (달빛 언덕이 가깝습니다)</li>' +
+      '<li>도착하면 [채집하기]로 재료를 모읍니다. 장기 채집은 시간이 걸리지만 경험치와 좋은 재료를 줍니다.</li>' +
+      '<li>거점으로 돌아와 물약을 만들고, 거래소에서 팔아 도구 거리에서 도구를 장만하세요.</li></ol></div>' +
+      '<div class="lt-actions"><button class="btn primary big" data-act="' + (first ? 'accept-intro' : 'close-ov') + '">' + (first ? '초대를 받아들인다' : '닫기') + '</button></div></div>';
+  }
+
+  // 장기 채집 중에 펼쳐지는 채집 스크롤. 시작할 때 글 줄을 미리 정해 두고(T.script), 시간이 흐름에 따라 한 줄씩 나타난다.
+  const SC = {
+    open: {
+      grassland: ['은빛 초원에 닿자 달빛을 닮은 풀잎이 발목을 간질인다. 바구니를 내려놓고 풀밭에 무릎을 꿇는다.',
+        '바람이 풀밭을 쓸고 지나가며 물결무늬를 만든다. 그 물결 사이사이에 쓸 만한 약초가 숨어 있다.',
+        '들판 한가운데 서서 숨을 고른다. 풀 내음이 코끝에 가득하다. 오늘도 좋은 하루가 될 것 같다.'],
+      mountain: ['구름 산맥의 비탈은 가파르다. 밧줄을 허리에 감고 바위 틈의 풀을 찾아 한 걸음씩 오른다.',
+        '산 공기는 얇고 차갑다. 숨을 내쉴 때마다 하얀 김이 피어오른다.',
+        '구름이 발아래로 흐른다. 바위 사이로 고개를 내민 풀잎이 눈에 들어온다.'],
+      waters: ['푸른 물가에 닿았다. 물결 소리가 귓가를 채우고, 젖은 돌 위로 작은 풀이 자란다.',
+        '신발을 벗고 얕은 물에 발을 담근다. 차가운 물이 정강이를 감싼다.',
+        '갈대밭 너머로 물새 한 마리가 날아오른다. 이곳의 재료는 대개 물 가까이에 숨어 있다.'],
+      volcano: ['잿불 화산 자락의 땅은 아직 따뜻하다. 발밑에서 작은 불씨가 깜빡인다.',
+        '매캐한 재 냄새가 코를 찌른다. 천으로 입을 가리고 검은 흙을 헤친다.',
+        '멀리서 화산이 낮게 울린다. 서둘러야 하지만, 서두르다 다치면 아무것도 얻지 못한다.'],
+      caves: ['속삭이는 동굴 입구에서 등불을 켠다. 안쪽에서 누군가 속삭이는 듯한 메아리가 번진다.',
+        '젖은 바위벽에 이끼가 은은히 빛난다. 등불을 낮추고 한 발씩 들어간다.',
+        '어둠이 깊어질수록 소리가 또렷해진다. 물방울 떨어지는 소리가 박자를 만든다.'],
+      forest: ['고요한 숲은 이름처럼 조용하다. 새소리마저 멀리서 들리고, 낙엽 밟는 소리가 크게 느껴진다.',
+        '나무뿌리가 땅 위로 불거져 길을 막는다. 뿌리를 넘으며 세계수의 이야기를 문득 떠올린다.',
+        '나뭇잎 사이로 내려온 빛줄기가 이끼 위에 떨어진다. 그 빛 아래에서 재료를 하나씩 모은다.'],
+    },
+    flow: {
+      grassland: ['나비 한 마리가 어깨에 앉았다 떠난다. 소매에 꽃가루가 묻었다.',
+        '뿌리째 뽑지 않도록 조심해 줄기만 벤다. 내년에도 이곳에 자랄 풀이다.',
+        '바구니 바닥이 어느새 묵직해진다.',
+        '멀리서 양치기의 휘파람 소리가 들려온다.'],
+      mountain: ['돌이 굴러 떨어지는 소리에 흠칫 멈췄다가, 다시 손을 뻗는다.',
+        '절벽 틈에서 하얗게 핀 풀꽃을 발견한다. 손이 닿을 듯 말 듯하다.',
+        '바위에 앉아 잠시 물을 마신다. 산 아래 별나루의 지붕이 장난감처럼 작다.',
+        '산바람에 외투 자락이 세차게 펄럭인다.'],
+      waters: ['물속에서 은빛 물고기가 스친다. 발끝이 간질간질하다.',
+        '갈대를 헤치자 물방울이 맺힌 풀잎이 반짝인다.',
+        '젖은 소매를 짜며 바구니를 정리한다.',
+        '수면에 비친 구름이 천천히 흘러간다.'],
+      volcano: ['뜨거운 돌 사이에서 붉게 달아오른 광물이 눈에 띈다.',
+        '발밑이 따뜻하다 못해 뜨겁다. 장화 밑창을 확인하고 자리를 옮긴다.',
+        '연기 사이로 붉은 불꽃이 번쩍인다.',
+        '이마의 땀을 닦으며 옷에 앉은 재를 털어 낸다.'],
+      caves: ['어디선가 물이 똑, 똑 떨어진다. 속삭임이 한 겹 더 깊어진다.',
+        '수정이 등불을 받아 벽 전체가 별이 뜬 밤처럼 반짝인다.',
+        '박쥐 몇 마리가 천장에서 푸드덕 날아간다.',
+        '등불 기름을 확인한다. 아직 충분하다.'],
+      forest: ['머리 위로 도토리가 떨어진다. 다람쥐가 미안한 듯 이쪽을 쳐다본다.',
+        '반딧불이 몇 마리가 낮인데도 숲속을 맴돈다.',
+        '이끼 낀 나무 둥치에 버섯이 줄지어 돋았다.',
+        '숲 깊은 곳에서 아주 낮은 울림이 느껴진다. 뿌리가 숨을 쉬는 것 같다.'],
+    },
+    wx: {
+      clear: ['맑은 하늘 아래 햇살이 좋다. 풀잎마다 생기가 도는 게 눈에 보인다.', '구름 한 점 없는 날이라 멀리까지 잘 보인다. 재료를 고르기에 안성맞춤이다.'],
+      cloudy: ['하늘이 잿빛으로 낮게 내려앉았다. 차분히 일하기 좋은 날이다.', '구름이 해를 가렸다 풀어 주기를 되풀이한다.'],
+      rain: ['가는 비가 내리기 시작한다. 젖은 풀에서 진한 향이 피어오른다.', '빗방울이 모자 끝에서 똑똑 떨어진다. 비를 머금은 약초가 오히려 싱싱하다.'],
+      fog: ['안개가 자욱하다. 열 걸음 앞도 흐릿하지만, 이런 날에는 환영과 기억의 기운이 도는 재료가 잘 보인다.', '안개 속에서 풀잎의 윤곽이 번졌다 선명해진다. 길을 잃지 않도록 줄을 꼭 잡는다.'],
+      storm: ['바람이 많이 분다. 바구니를 꽉 쥐고 몸을 낮춘다. 재료를 놓칠까 조마조마하다.', '폭풍이 몰아친다! 우비가 펄럭이고, 풀잎은 땅에 붙은 채 떨고 있다.'],
+      snow: ['눈보라가 몰아친다. 속눈썹에 서리가 앉고 손끝이 얼어 간다.', '하얀 눈 속에 파묻힌 풀을 장갑 낀 손으로 파낸다.'],
+      heat: ['폭염이 내리쬔다. 땀이 줄줄 흐르고 바구니마저 뜨겁다.', '발바닥이 달아오른다. 그늘을 찾아 물을 한 모금 마신다.'],
+      ash: ['화산재가 눈처럼 내려앉는다. 천으로 입을 가리고 눈을 가늘게 뜬다.', '하늘이 붉게 흐려진다. 재가 쌓인 풀을 털어 내며 조심조심 걷는다.'],
+    },
+    season: {
+      spring: ['봄볕에 새싹이 앞다퉈 올라온다.', '봄바람에 꽃가루가 날린다. 재채기가 한 번 나온다.'],
+      summer: ['한여름의 풀냄새가 진하다. 매미 소리가 귀를 울린다.', '여름 해는 길어서 아직 하루가 많이 남은 기분이다.'],
+      autumn: ['낙엽이 발밑에서 바스락 소리를 낸다. 열매가 영근 계절이다.', '쌀쌀한 바람이 목덜미를 스친다. 풀들이 겨울 채비를 하고 있다.'],
+      winter: ['입김이 하얗게 피어오른다. 겨울 풀은 드물어서 하나하나가 귀하다.', '땅이 얼어 단단하다. 서리 낀 풀잎을 조심스레 딴다.'],
+    },
+    abil: {
+      acu: [[5, '예리한 눈이 풀숲 속 재료마다 옅은 빛의 확률을 읽어 낸다. 어디를 먼저 뒤져야 할지 알 것 같다.'],
+        [10, '손이 저절로 한 번 더 뻗어 나간다. 한 줌 더 쥔 것이 기분 탓이 아니다.'],
+        [15, '아직 본 적 없는 풀인데도 윤곽이 먼저 떠오른다. 이 땅이 당신에게 숨길 수 있는 것은 많지 않다.'],
+        [20, '날씨도 계절도 아랑곳없이, 어딘가에서 바람을 거스르는 약초 한 포기가 고개를 든다.']],
+      int: [[5, '머릿속에서 재료들이 저절로 짝을 맞춘다. 이 풀은 저 열매와 잘 어울리겠다.'],
+        [10, '채집하는 동안에도 다음 물약의 배합이 머릿속에서 끓는다.'],
+        [15, '세 가지 재료가 하나의 노래처럼 이어지는 감각. 연금술이 몸에 스며들었다.'],
+        [20, '전설의 조합이 머릿속 깊은 곳에서 희미하게 빛난다. 아직은 닿지 않는 별이다.']],
+      craft: [[5, '바구니를 다루는 손놀림이 매끄럽다. 같은 시간에 더 많은 재료가 담긴다.'],
+        [10, '도구가 손에 착 감긴다. 오래전부터 쓰던 것처럼.'],
+        [15, '손끝이 도구의 한계까지 끌어낸다. 장인의 감각이란 이런 것일까.'],
+        [20, '굳이 생각하지 않아도 손이 알아서 움직인다.']],
+      charm: [[5, '지나가던 약초꾼이 반갑게 손을 흔든다. 사람들은 이상하게 당신에게 호의를 품는다.'],
+        [10, '이 땅에 대해 누군가 들려준 이야기를 곱씹는다. 사람들이 당신에게 의뢰를 맡기는 이유를 알 것 같다.'],
+        [15, '당신의 이름이 마을을 넘어 퍼지고 있다는 소문이 바람결에 들린다.'],
+        [20, '세계수에 닿을 사람이라는 말이 어느새 공공연히 오간다.']],
+      swift: [[5, '걸음이 가볍다. 어느새 이곳저곳을 한 바퀴 돌고 있다.'],
+        [10, '가 본 길은 발이 먼저 기억한다. 풀숲 사이의 지름길이 저절로 보인다.'],
+        [15, '바람을 타는 듯한 발걸음. 지친 줄도 모르고 한참을 걸었다.'],
+        [20, '당신이 지나간 자리에는 발자국보다 바람이 먼저 남는다.']],
+    },
+    tool: {
+      sickle: [[1, '낫날이 풀줄기를 사각 하고 가른다. 깔끔하게 한 포기를 더 거둔다.'], [4, '낫이 바람처럼 지나간다. 한 번에 두 포기가 가지런히 쓰러진다.']],
+      boots: [[1, '여행 장화 덕분에 젖은 땅에서도 미끄러지지 않는다.'], [4, '장화가 땅을 읽는 것처럼 발을 받쳐 준다. 먼 길도 힘들지 않다.']],
+      basket: [[1, '약초 바구니가 넉넉해서 담는 손이 바쁘다.'], [4, '바구니가 도무지 가득 차지 않는다. 담고 또 담는다.']],
+      pickaxe: [[1, '곡괭이로 바위를 두드리자 광물 조각이 튕겨 나온다.']],
+    },
+    tree: ['문득 별나루 회관에서 들은 세계수 이야기가 떠오른다. 이 풀 한 포기가 그 나무로 이어지는 길일지도 모른다.',
+      '대대륙은 어떤 곳일까. 지평선 너머를 바라보며 잠시 상상한다.'],
+    tired: '어깨가 무겁다. 쉬지 않고 오래 일해서인지 손이 둔해졌다. 거점에서 푹 쉬어야겠다.',
+    close: ['바구니를 묶고 일어선다. 오늘 거둔 것은 거점에서 정리하자.',
+      '해가 기울기 전에 채집을 마친다. 한결 가벼운 마음이다.',
+      '마지막 한 포기를 담고 허리를 편다. 이만하면 충분하다.'],
+  };
+  const SCRIPT_LINES = { 30: 4, 60: 5, 120: 7, 180: 9 };     // 채집 시간별 글 줄 수
+  function seededRng(seed) {
+    let s = seed >>> 0;
+    return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+  }
+  // 날씨·계절·지역·능력·도구·피로에 따라 줄을 고른다. 매번 다른 순서로 나온다.
+  function buildScript(ex, seed) {
+    const R = seededRng(seed || 1), pick = (a) => a[Math.floor(R() * a.length)];
+    const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
+    const area = G.areas[ex.area], reg = SC.open[area.regionId] ? area.regionId : 'grassland';
+    const w = G.weatherAt(ex.area), n = SCRIPT_LINES[ex.minutes] || 5;
+    const wid = w ? (w.name === '화산재' ? 'ash' : w.id) : 'cloudy';
+    const out = [pick(SC.open[reg]), pick(SC.wx[wid])];
+    const spec = [pick(SC.season[G.seasonId()])];
+    Alchemy.ABILITY_KEYS.forEach((k) => {
+      const ok = SC.abil[k].filter((e) => G.abilLv(k) >= e[0]);
+      if (ok.length) spec.push(pick(ok)[1]);
+    });
+    Object.keys(SC.tool).forEach((id) => {
+      const lv = G.toolLv(id), ok = SC.tool[id].filter((e) => lv >= e[0]);
+      if (!ok.length) return;
+      if (id === 'pickaxe' && ['volcano', 'caves', 'mountain'].indexOf(area.regionId) < 0) return;
+      spec.push(ok[ok.length - 1][1]);
+    });
+    if (G.state.clues && G.state.clues.length) spec.push(pick(SC.tree));
+    const body = shuffle(spec).concat(shuffle(SC.flow[reg]));
+    const need = n - 3 - (ex.fat > 0 ? 1 : 0);
+    const mid = body.slice(0, Math.max(0, need));
+    out.push.apply(out, mid);
+    if (ex.fat > 0) out.push(SC.tired);
+    out.push(pick(SC.close));
+    return out;
+  }
+  // 줄 i 는 진행도 i/n × 0.92 에 나타난다 (첫 줄은 시작하자마자)
+  function scriptShown(T0) {
+    const total = T0.script.length, frac = Math.min(1, Math.max(0, 1 - (T0.endAt - Date.now()) / T0.total));
+    let k = 0;
+    for (let i = 0; i < total; i++) if (frac >= i / total * 0.92 - 1e-9) k = i + 1;
+    return k;
+  }
+  function ensureScript() {
+    if (T && !T.script) T.script = buildScript(G.state.currentExpedition, T.endAt);
+  }
+  function scrollHtml() {
+    const done = !T && UI.scrollDone, src = done ? UI.scrollDone : T;
+    if (!src) return '';
+    if (!done) ensureScript();
+    const lines = done ? src.script : src.script.slice(0, scriptShown(src));
+    const fresh = lines.length > (UI.scrollShown || 0);
+    UI.scrollShown = lines.length;
+    const a = G.areas[done ? src.area : G.state.currentExpedition.area], wx = G.weatherAt(a.id);
+    let h = '<div class="sc-top"><span class="chip">' + a.regionName + ' · ' + a.name + '</span>' + (wx ? wxChip(wx) : '') +
+      '<span class="chip">' + DLABEL[src.minutes] + ' 채집</span></div>';
+    if (!done) {
+      const left = Math.max(0, T.endAt - Date.now());
+      h += '<div class="bar focus" style="margin:10px 0 4px"><i id="scr-fill" style="width:' + ((1 - left / T.total) * 100) + '%"></i></div>' +
+        '<div class="sub" id="scr-time" style="margin-bottom:10px">남은 시간 ' + fmt(Math.ceil(left / msPerMin() * 60)) + '</div>';
+    }
+    h += '<div class="scroll-paper">' + lines.map((t, i) => '<p class="sl' + (fresh && i === lines.length - 1 ? ' new' : '') + '">' + t + '</p>').join('') +
+      (done ? '' : '<p class="sl wait" aria-hidden="true">…</p>') + '</div>';
+    if (done) {
+      h += '<div class="notice" style="margin-top:12px"><b>채집을 마쳤다</b> · 경험치 +' + src.xp + '<div class="desc" style="margin-top:4px">수확: ' + src.herbs + '</div></div>' +
+        '<div class="actions" style="margin-top:12px"><button class="btn primary" data-act="close-ov">닫기</button></div>';
+    } else {
+      h += '<p class="sub" style="margin:12px 0 0">창을 닫아도 채집은 계속된다. 메인 탭의 "지금 위치" 카드에서 다시 펼칠 수 있다.</p>';
+    }
+    return h;
+  }
+  // 한 줄이 늘었을 때만 다시 그리고, 아니면 진행 막대와 남은 시간만 고친다
+  function updateScroll() {
+    if (!T || UI.ov !== 'scroll') return;
+    ensureScript();
+    if (scriptShown(T) !== UI.scrollShown) {
+      renderOverlay();
+      const b = ovRoot.querySelector('.ov-body');
+      if (b) b.scrollTop = b.scrollHeight;
+      return;
+    }
+    const left = Math.max(0, T.endAt - Date.now()), f = $('#scr-fill'), t = $('#scr-time');
+    if (f) f.style.width = ((1 - left / T.total) * 100) + '%';
+    if (t) t.textContent = '남은 시간 ' + fmt(Math.ceil(left / msPerMin() * 60));
+  }
+
   // 오버레이(거래소·도구 거리·의뢰 게시판·마을 업그레이드): #view 밖(body 끝)에 따로 그려서 화면이 다시 그려져도 스크롤 위치를 지킨다.
   // 해당 건물에 있을 때만 열려 있을 수 있고, 다른 곳으로 이동하면 닫힌다.
   // ok(): 열려 있어도 되는 상태인지. 건물 오버레이는 그 건물에 있을 때만, 채집은 채집 가능한 곳에 서 있을 때만 열린다.
   const inHub = () => HUB_IDS.indexOf(G.state.location) >= 0 && G.state.phase !== 'travel';
   const OVERLAYS = {
+    intro: { ok: () => !G.state.introSeen, title: '별나루의 초대장', html: () => letterHtml(true), locked: true },
+    letter: { ok: () => true, title: '별나루의 초대장', html: () => letterHtml(false) },
+    scroll: { ok: () => !!T || !!UI.scrollDone, title: () => '채집 스크롤 · ' + G.areas[T ? G.state.currentExpedition.area : UI.scrollDone.area].name, html: scrollHtml },
     gather: { ok: () => !G.currentArea().noGather && G.state.phase !== 'travel', title: () => G.currentArea().name + ' 채집', html: gatherOverlayHtml },
     forecast: { ok: () => true, title: () => '날씨 예보', html: forecastHtml },
     area: { ok: () => !!G.areas[UI.ovArg], title: () => G.areas[UI.ovArg].name, html: () => areaDetailHtml(UI.ovArg) },
@@ -4949,8 +5178,9 @@ const DATA = {
   const ovRoot = document.createElement('div');
   ovRoot.id = 'overlay-root';
   document.body.appendChild(ovRoot);
-  function closeOverlay() { UI.ov = null; renderOverlay(); }
+  function closeOverlay() { if (UI.ov === 'intro') return; UI.ov = null; renderOverlay(); }       // 초대장은 [초대를 받아들인다]로만 닫힌다
   function renderOverlay() {
+    if (UI.ov !== 'scroll') { UI.scrollDone = null; UI.scrollShown = 0; }
     const def = UI.ov ? OVERLAYS[UI.ov] : null;
     const open = def && (def.ok ? def.ok() : G.state.location === def.loc && G.state.phase !== 'travel');
     if (!open) {
@@ -4964,11 +5194,12 @@ const DATA = {
     const title = typeof def.title === 'function' ? def.title() : def.title;
     ovRoot.innerHTML = '<div class="overlay" data-ov="backdrop"><div class="ov-card" data-key="' + UI.ov + '" role="dialog" aria-modal="true" aria-label="' + title + '" tabindex="-1">' +
       '<div class="ov-head"><h2>' + title + '</h2>' + (def.gold ? '<span class="sub">보유 <b class="gold">' + won(G.state.gold) + '</b></span>' : '') +
-      '<button class="btn small" data-act="close-ov" aria-label="' + title + ' 닫기">닫기</button></div>' +
+      (def.locked ? '' : '<button class="btn small" data-act="close-ov" aria-label="' + title + ' 닫기">닫기</button>') + '</div>' +
       '<div class="ov-body">' + def.html() + '</div></div></div>';
     document.body.classList.add('ov-open');
     ovRoot.querySelector('.ov-body').scrollTop = top;
     if (!same) ovRoot.querySelector('.ov-card').focus();
+    if (!same && UI.ov === 'scroll') { const b = ovRoot.querySelector('.ov-body'); b.scrollTop = b.scrollHeight; }
   }
 
   function renderView() {
@@ -5000,9 +5231,10 @@ const DATA = {
       const m = Number(el.dataset.m);
       const r = G.startExpedition(m);
       if (!r.ok) return log(r.message, 'bad');
-      UI.ov = null;
       const total = m * msPerMin();
       T = { minutes: m, total: total, endAt: Date.now() + total };
+      T.script = buildScript(G.state.currentExpedition, Date.now() & 0x7fffffff);
+      UI.ov = 'scroll'; UI.scrollShown = 0; UI.scrollDone = null;
       log(r.area + '에서 ' + DLABEL[m] + ' 채집을 시작했다. ' + startWeatherNote(r.weather), 'sys');
     },
     pin(el) {
@@ -5061,6 +5293,11 @@ const DATA = {
       log(r.message, r.ok ? 'good' : 'bad');
     },
     'close-ov'() { UI.ov = null; },
+    'accept-intro'() {
+      G.state.introSeen = true; UI.ov = null;
+      log('별나루 회관의 초대를 받아들였다. 연금술사로서의 첫걸음이다. 지도에서 가고 싶은 곳을 눌러 보자.', 'good');
+    },
+    'read-letter'() { UI.ov = 'letter'; const m = $('#menu'); if (m) m.open = false; },
     'accept-quest'(el) {
       const r = G.acceptQuest(el.dataset.id);
       log(r.message, r.ok ? 'good' : 'bad');
@@ -5172,6 +5409,7 @@ const DATA = {
       selArea = G.state.location;
       T = null; picked = []; logs = []; pins = [];
       log('처음부터 다시 시작한다.', 'sys');
+      UI.ov = 'intro';
     },
   };
 
