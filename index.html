@@ -45,7 +45,7 @@
   --r1: #66736B;
   --r2: #2A7849;
   --r3: #2C5DA5;
-  --r4: #A06E10;
+  --r4: #A06E10; --r5: #8A45B8;
   --map-bg: #E5EADF;
   --m-grass: #BFD5AA;
   --m-mount: #CBCFC3;
@@ -75,7 +75,7 @@
     --accent: #6FC3A1; --accent-soft: #1B3328; --accent-fg: #0E1411;
     --ember: #E58C4F; --ember-soft: #3A2416; --ember-fg: #1A0E05;
     --warn: #D9A93F; --gold: #E2B450; --up: #6FC38A; --down: #E58C4F;
-    --r1: #94A29A; --r2: #6FC38A; --r3: #80A9EA; --r4: #E2B450;
+    --r1: #94A29A; --r2: #6FC38A; --r3: #80A9EA; --r4: #E2B450; --r5: #C28BEB;
     --map-bg: #0A100D; --m-grass: #21382A; --m-mount: #2A3331; --m-water: #1D3A42; --m-lava: #4B2C1F;
     --m-cave: #2E2939; --m-coast: #3E594A; --m-deco: #7EA08A; --m-town: #3A3727; --m-forest: #1B3A2C;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 26px -12px rgba(0, 0, 0, 0.6);
@@ -88,7 +88,7 @@
   --accent: #6FC3A1; --accent-soft: #1B3328; --accent-fg: #0E1411;
   --ember: #E58C4F; --ember-soft: #3A2416; --ember-fg: #1A0E05;
   --warn: #D9A93F; --gold: #E2B450; --up: #6FC38A; --down: #E58C4F;
-  --r1: #94A29A; --r2: #6FC38A; --r3: #80A9EA; --r4: #E2B450;
+  --r1: #94A29A; --r2: #6FC38A; --r3: #80A9EA; --r4: #E2B450; --r5: #C28BEB;
   --map-bg: #0A100D; --m-grass: #21382A; --m-mount: #2A3331; --m-water: #1D3A42; --m-lava: #4B2C1F;
   --m-cave: #2E2939; --m-coast: #3E594A; --m-deco: #7EA08A; --m-town: #3A3727; --m-forest: #1B3A2C;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 26px -12px rgba(0, 0, 0, 0.6);
@@ -178,6 +178,7 @@ details.testbox { padding: 12px var(--pad); }
 .chip.c-common { border-left: 3px solid var(--r1); }
 .chip.c-uncommon { border-left: 3px solid var(--r2); }
 .chip.c-rare { border-left: 3px solid var(--r3); }
+.chip.c-epic { border-left: 3px solid var(--r5); }
 .chip.c-legendary { border-left: 3px solid var(--r4); }
 .hot { font-size: 0.75em; padding: 1px 7px; border-radius: 999px; background: var(--ember); color: var(--ember-fg); }
 .up { color: var(--up); } .down { color: var(--down); }
@@ -221,7 +222,7 @@ b.gold { font-weight: 400; font-family: var(--font-mono); font-variant-numeric: 
 .row.dim { opacity: 0.6; }
 .row .actions { flex-wrap: nowrap; }
 .rar { font-size: 0.75em; letter-spacing: 0.06em; }
-.rar.common { color: var(--r1); } .rar.uncommon { color: var(--r2); } .rar.rare { color: var(--r3); } .rar.legendary { color: var(--r4); }
+.rar.common { color: var(--r1); } .rar.uncommon { color: var(--r2); } .rar.rare { color: var(--r3); } .rar.epic { color: var(--r5); } .rar.legendary { color: var(--r4); }
 .sig { color: var(--warn); font-size: 0.8em; }
 .cnt { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .notice { padding: 10px 14px; border: 1px solid var(--line-strong); border-left: 4px solid var(--warn); border-radius: var(--rad-sm); font-size: 0.9em; background: var(--surface-2); }
@@ -253,6 +254,7 @@ details .row { background: var(--surface); }
 .pick button.c-common { border-left: 3px solid var(--r1); }
 .pick button.c-uncommon { border-left: 3px solid var(--r2); }
 .pick button.c-rare { border-left: 3px solid var(--r3); }
+.pick button.c-epic { border-left: 3px solid var(--r5); }
 .pick button.c-legendary { border-left: 3px solid var(--r4); }
 .fbar { margin-bottom: 10px; }
 .fbar button { padding: 4px 11px; font-size: 0.87em; }
@@ -375,17 +377,20 @@ body.ov-open { overflow: hidden; }
 @keyframes slWait { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.9; } }
 
 /* 제작 결과 배너: fade in → 유지 → fade out (5초) */
-#result-banner { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); z-index: 300; pointer-events: none; width: min(92vw, 420px); opacity: 0; }
-#result-banner.show { animation: rb-fade 5s ease-in-out forwards; }
-.rb-card { display: grid; gap: 4px; justify-items: center; text-align: center; padding: 18px 22px; border-radius: var(--radius, 14px); background: var(--card, #fff); border: 1px solid var(--line-strong); box-shadow: 0 10px 40px rgba(0,0,0,.22); }
-.rb-card b { font-family: var(--font-display); font-size: 24px; font-weight: 400; }
+#result-banner { position: fixed; inset: 0; z-index: 300; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(20,24,22,.42); cursor: pointer; }
+#result-banner.show { display: flex; animation: rb-in .28s ease-out both; }
+#result-banner.hide { display: flex; animation: rb-out .22s ease-in both; pointer-events: none; }
+.rb-card { display: grid; gap: 6px; justify-items: center; text-align: center; width: min(92vw, 420px); padding: 22px 24px 16px; border-radius: var(--radius, 14px); background: var(--card, #fff); border: 1px solid var(--line-strong); box-shadow: 0 10px 40px rgba(0,0,0,.28); }
+.rb-card b { font-family: var(--font-display); font-size: 26px; font-weight: 400; }
 .rb-card span { color: var(--muted); font-size: 14px; }
+.rb-card i { margin-top: 6px; font-style: normal; font-size: 12px; color: var(--muted); }
 .rb-card.win { border-top: 4px solid var(--accent); }
 .rb-card.win b { color: var(--accent); }
 .rb-card.lose { border-top: 4px solid var(--ember); }
 .rb-card.lose b { color: var(--ember); }
-@keyframes rb-fade { 0% { opacity: 0; transform: translateX(-50%) translateY(8px); } 12% { opacity: 1; transform: translateX(-50%) translateY(0); } 78% { opacity: 1; } 100% { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { #result-banner.show { animation-name: rb-fade-rm; } @keyframes rb-fade-rm { 0% { opacity: 0; } 12% { opacity: 1; } 78% { opacity: 1; } 100% { opacity: 0; } } }
+@keyframes rb-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rb-out { from { opacity: 1; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #result-banner.show, #result-banner.hide { animation-duration: 1ms; } }
 </style>
 
 <div class="app">
@@ -503,19 +508,19 @@ body.ov-open { overflow: hidden; }
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  const RARITIES = ['common', 'uncommon', 'rare', 'legendary'];
-  const ORDINARY = ['common', 'uncommon', 'rare'];   // 일반 뽑기에 나오는 등급
+  const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary'];   // 일반 · 고급 · 희귀 · 영웅 · 전설
+  const ORDINARY = ['common', 'uncommon', 'rare', 'epic'];   // 일반 뽑기에 나오는 등급
 
   const DEFAULTS = {
     // ---- 채집 ---------------------------------------------------------------
     // 등급별 출현 가중치. 소지역에 없는 등급은 빠지고 남은 등급끼리 비율로 환산한다.
     // 전설 약초는 이 표에 없다. 장기 채집 완료 시 legendaryChance 로만 얻는다.
     odds: {
-      short: { common: 75, uncommon: 20, rare: 5 },
-      30:    { common: 55, uncommon: 35, rare: 10 },
-      60:    { common: 30, uncommon: 45, rare: 25 },
-      120:   { common: 10, uncommon: 40, rare: 50 },
-      180:   { common: 0,  uncommon: 25, rare: 75 },
+      short: { common: 75, uncommon: 20, rare: 5,  epic: 1 },
+      30:    { common: 55, uncommon: 35, rare: 10, epic: 2 },
+      60:    { common: 30, uncommon: 45, rare: 25, epic: 5 },
+      120:   { common: 10, uncommon: 40, rare: 50, epic: 12 },
+      180:   { common: 0,  uncommon: 25, rare: 75, epic: 18 },
     },
     expeditionMinutes: [30, 60, 120, 180],
     expeditionRolls: { 30: 3, 60: 7, 120: 15, 180: 24 },      // 완료 시 약초를 뽑는 횟수
@@ -715,7 +720,7 @@ body.ov-open { overflow: hidden; }
       ORDINARY.forEach(function (r) {
         if (!present[r]) return;
         let x = table[r] || 0;
-        if (r === 'rare') x *= mult;
+        if (r === 'rare' || r === 'epic') x *= mult;
         w[r] = x; total += x;
       });
       if (total <= 0) {   // 이 시간대 표에 해당하는 등급이 지역에 없으면 있는 등급끼리 똑같이 나눈다
@@ -1095,7 +1100,8 @@ const DATA = {
   const TCH = { '활': '활력', '평': '평온', '집': '집중', '기': '기억', '정': '정화', '환': '환영', '결': '결속', '회': '회복' };
   const CATS = { '약': '약초', '버': '버섯', '열': '열매', '광': '광물', '보': '보석', '부': '부산물', '정': '정수' };
   const CAT_ORDER = ['약', '버', '열', '광', '보', '부', '정'];
-  const RARS = ['common', 'uncommon', 'rare', 'legendary'];
+  const RARS = ['common', 'uncommon', 'rare', 'epic', 'legendary'];         // 재료 등급: 일반 · 고급 · 희귀 · 영웅 · 전설
+  const POT_RARS = ['common', 'uncommon', 'rare', 'legendary'];            // 물약은 1~4등급 그대로
 
   function hash(str) {
     let h = 2166136261;
@@ -1358,7 +1364,7 @@ const DATA = {
   }
 
   function itemPrice(rarity, cat, key) {
-    const base = [6, 20, 58, 220][RARS.indexOf(rarity)];
+    const base = [6, 20, 58, 120, 220][RARS.indexOf(rarity)];
     const cm = { '약': 1, '버': 1.1, '열': 0.9, '광': 0.9, '보': 1.8, '부': 1, '정': 1.2 }[cat] || 1;
     return Math.max(2, Math.round(base * cm * (0.88 + 0.24 * hash(key))));
   }
@@ -1562,7 +1568,7 @@ const DATA = {
       const effects = [ptEffect(pri, tier)];
       if (tier >= 3) effects.push(ptEffect(sec, tier - 2));
       const p = {
-        id: id, name: SEC_ADJ[sec] + ' ' + PRI_NOUN[pri] + ' ' + FORM[tier], tier: tier, rarity: RARS[tier - 1],
+        id: id, name: SEC_ADJ[sec] + ' ' + PRI_NOUN[pri] + ' ' + FORM[tier], tier: tier, rarity: POT_RARS[tier - 1],
         ingredients: null, recipeKey: id, effects: effects, primary: pri, secondary: sec, proc: true,
         description: effects.map(function (e) { return e.description; }).join(' '),
         hint: '', price: Math.round(PT_PRICE[tier] * (tier >= 3 ? 1.35 : 1)),
@@ -1589,7 +1595,7 @@ const DATA = {
       const fixed = this.recipes[A.recipeKey(ids)];
       if (fixed) return fixed;
       const pair = this._traitPair(ids);
-      const avg = ids.reduce(function (a, id) { return a + A.RARITIES.indexOf(this.herbs[id].rarity); }.bind(this), 0) / ids.length;
+      const avg = ids.reduce(function (a, id) { return a + Math.min(3, A.RARITIES.indexOf(this.herbs[id].rarity)); }.bind(this), 0) / ids.length;
       const tier = Math.max(1, Math.min(4, 1 + Math.floor(avg + 0.4)));
       return this.ensurePotion('pt:' + pair[0] + ':' + pair[1] + ':' + tier);
     }
@@ -1888,6 +1894,7 @@ const DATA = {
   };
 
   A.Game3 = Game3;
+  A.itemPrice = itemPrice;
   A.TRAITS = TRAITS;
   A.CATS = CATS;
   A.CAT_ORDER = CAT_ORDER;
@@ -2189,7 +2196,7 @@ const DATA = {
         return { recipe: fixed };
       }
       const pair = this._traitPair(ids);
-      const avg = ids.reduce(function (a, id) { return a + A.RARITIES.indexOf(this.herbs[id].rarity); }.bind(this), 0) / ids.length;
+      const avg = ids.reduce(function (a, id) { return a + Math.min(3, A.RARITIES.indexOf(this.herbs[id].rarity)); }.bind(this), 0) / ids.length;
       let tier = Math.max(1, Math.min(4, 1 + Math.floor(avg + 0.4)));
       const wanted = tier;
       if (tier > cap) tier = cap;
@@ -3115,7 +3122,7 @@ const DATA = {
 (function () {
   'use strict';
   const A = Alchemy;
-  const RARS = ['common', 'uncommon', 'rare', 'legendary'];
+  const RARS = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
 
   // ---- 단기 · 장기 채집
   const SHORT_DAILY = 30;                     // 하루 단기 채집 횟수
@@ -3351,7 +3358,7 @@ const DATA = {
       if (!r.lost) {
         // 단기 채집도 연금술사 경험치를 준다: 기본 1, 높은 등급일수록 더 (하루 30회)
         const rar = this.herbs[r.herbId].rarity;
-        r.xp = { common: 1, uncommon: 2, rare: 3, legendary: 5 }[rar] || 1;
+        r.xp = { common: 1, uncommon: 2, rare: 3, epic: 4, legendary: 5 }[rar] || 1;
         r.levelsGained = this.addXp(r.xp);
       }
       if (this.seasonId() === 'autumn') {                       // 가을: 쌀쌀한 바람 — 대기시간 +15%
@@ -3513,7 +3520,7 @@ const DATA = {
       let items = pool.slice(0, size).map(function (h) { return { h: h, weekend: false }; });
       if (this.isWeekend()) {
         // 주말: 지금 살 수 있는 것보다 2단계 높은 등급의 재료가 확률적으로 섞인다 (전설까지)
-        const tier = Math.min(3, maxR + 2);
+        const tier = Math.min(4, maxR + 2);
         const high = this.herbList.filter(function (h) { return ok(h) && RARS.indexOf(h.rarity) === tier; }).sort(byHash('W'));
         for (let i = 0; i < 2 && high.length; i++) {
           if (hash(t + 'WK' + i) < 0.6) {
@@ -3714,7 +3721,7 @@ const DATA = {
 (function () {
   'use strict';
   const A = Alchemy;
-  const RARS = ['common', 'uncommon', 'rare', 'legendary'];
+  const RARS = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
 
   function F(code, message) { return { ok: false, code: code, message: message }; }
   function hash(str) {
@@ -3733,7 +3740,7 @@ const DATA = {
     { name: '꽃핀 나무', need: 25000, clues: 9 },
     { name: '세계수', need: 70000, clues: 12 },
   ];
-  const RAR_NOURISH = { common: 1, uncommon: 1.5, rare: 2, legendary: 3 };   // 재료 값에 곱하는 자양분 배수
+  const RAR_NOURISH = { common: 1, uncommon: 1.5, rare: 2, epic: 2.5, legendary: 3 };   // 재료 값에 곱하는 자양분 배수
   const POTION_NOURISH = 1.5, GOOD_NOURISH = 1;
 
   // ---- 챕터: 조건을 채우면 이야기가 열리고 보상을 준다
@@ -4177,12 +4184,78 @@ const DATA = {
 
 </script>
 <script>
+/*!
+ * alchemy-ext8.js v11 — 재료 5등급(일반·고급·희귀·영웅·전설) 재조정 · 만든 물약의 조합 기억
+ * Game9 를 상속한다.
+ */
+(function () {
+  'use strict';
+  const A = Alchemy;
+
+  function hash(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  }
+
+  // 희귀·전설은 그대로 두고, 나머지 재료(일반·고급)를 일반 · 고급 · 영웅으로 다시 나눈다.
+  // 예전 등급이 높았던 재료일수록 영웅이 되기 쉽고, 나머지는 재료 이름으로 정해져 늘 같은 결과가 나온다.
+  const EPIC_SHARE = 0.17, UNCOMMON_SHARE = 0.38;
+  const KEEP_COMBOS = 3;                                // 물약 하나당 기억하는 재료 조합 수
+
+  class Game10 extends A.Game9 {
+    constructor(opts) {
+      super(opts);
+      const pool = this.herbList.filter(function (h) { return h.rarity === 'common' || h.rarity === 'uncommon'; })
+        .map(function (h) { return { h: h, score: (h.rarity === 'uncommon' ? 0.35 : 0) + hash('grade:' + h.id) * 0.65 }; })
+        .sort(function (a, b) { return b.score - a.score || (a.h.id < b.h.id ? -1 : 1); });
+      const nEpic = Math.round(pool.length * EPIC_SHARE), nUnc = Math.round(pool.length * UNCOMMON_SHARE);
+      pool.forEach(function (x, i) {
+        x.h.rarity = i < nEpic ? 'epic' : i < nEpic + nUnc ? 'uncommon' : 'common';
+        x.h.price = A.itemPrice(x.h.rarity, x.h.cat, x.h.id);
+      });
+    }
+
+    migrate() {
+      super.migrate();
+      this.state.combos = this.state.combos || {};      // { 물약 recipeKey: [[재료 id…], …] } 최근 것이 앞
+      return this;
+    }
+
+    brew(ids) {
+      const r = super.brew(ids);
+      if (r.ok) this._remember(r.potionId, ids);
+      return r;
+    }
+
+    _remember(potionId, ids) {
+      const key = this.ensurePotion(potionId).recipeKey, sorted = ids.slice().sort();
+      const sig = sorted.join('+'), list = (this.state.combos[key] || []).filter(function (c) { return c.join('+') !== sig; });
+      list.unshift(sorted);
+      this.state.combos[key] = list.slice(0, KEEP_COMBOS);
+    }
+
+    // 한 번 만든 물약의 재료 조합. 이름 있는 비약은 정해진 조합을, 자유 조합은 직접 만든 조합을 돌려준다.
+    comboFor(recipeKey) {
+      const fixed = this.potionList.find(function (p) { return p.recipeKey === recipeKey && p.ingredients; });
+      if (fixed) return [fixed.ingredients.slice()];
+      return (this.state.combos[recipeKey] || []).filter(function (c) { return c.every(function (id) { return this.herbs[id]; }, this); }, this);
+    }
+  }
+
+  A.GameClass = Game10;
+  A.Game10 = Game10;
+})();
+
+</script>
+<script>
 (function () {
   'use strict';
   const KEY = 'pomo-alchemy-save-v2';
   const DURS = [{ m: 30, label: '30분' }, { m: 60, label: '1시간' }, { m: 120, label: '2시간' }, { m: 180, label: '3시간' }];
   const DLABEL = { 30: '30분', 60: '1시간', 120: '2시간', 180: '3시간' };
-  const RAR = { common: '일반', uncommon: '고급', rare: '희귀', legendary: '전설' };
+  const RAR = { common: '일반', uncommon: '고급', rare: '희귀', epic: '영웅', legendary: '전설' };
   const TIER = { 1: '1등급 · 일반', 2: '2등급 · 고급', 3: '3등급 · 희귀', 4: '4등급 · 전설' };
   const EFF = {
     xp_boost: '연금술 경험치', yield_boost: '장기 채집 수확량', herb_bonus: '단기 채집 추가 재료',
@@ -4192,7 +4265,7 @@ const DATA = {
   const UNIT = { expedition: '장기', short: '단기', gather: '채집', brew: '조합', charge: '회' };
   const CATN = Alchemy.CATS;
   const CAT_ORDER = Alchemy.CAT_ORDER;
-  const RORDER = ['common', 'uncommon', 'rare', 'legendary'];
+  const RORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
   const HUB_IDS = ['camp', 'market', 'tool_street', 'town_hall'];
 
   const G = Alchemy.createGame(DATA);
@@ -4239,20 +4312,27 @@ const DATA = {
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { toastEl.hidden = true; }, 6000);
   }
-  // 제작 결과: 화면 가운데에 글이 서서히 나타났다가(fade in) 5초 뒤 서서히 사라진다(fade out). 클릭을 막지 않는다.
+  // 제작 결과: 화면 가운데에 오버레이로 뜨고, 화면을 클릭해야 사라진다. (Esc·Enter 도 닫는다)
   let bannerTimer = null;
+  function closeBanner() {
+    const el = document.getElementById('result-banner');
+    if (!el || el.className !== 'show') return;
+    el.className = 'hide';
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(() => { el.className = ''; el.innerHTML = ''; }, 240);
+  }
   function resultBanner(ok, title, detail) {
     let el = document.getElementById('result-banner');
     if (!el) {
       el = document.createElement('div');
-      el.id = 'result-banner'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite');
+      el.id = 'result-banner'; el.setAttribute('role', 'alertdialog'); el.setAttribute('aria-live', 'assertive');
+      el.addEventListener('click', closeBanner);
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' || e.key === 'Enter') closeBanner(); });
       document.body.appendChild(el);
     }
     clearTimeout(bannerTimer);
-    el.className = ''; void el.offsetWidth;                 // 연달아 만들면 연출을 처음부터 다시 시작한다
-    el.innerHTML = '<div class="rb-card ' + (ok ? 'win' : 'lose') + '"><b>' + title + '</b>' + (detail ? '<span>' + detail + '</span>' : '') + '</div>';
+    el.innerHTML = '<div class="rb-card ' + (ok ? 'win' : 'lose') + '"><b>' + title + '</b>' + (detail ? '<span>' + detail + '</span>' : '') + '<i>화면을 누르면 닫힙니다</i></div>';
     el.className = 'show';
-    bannerTimer = setTimeout(() => { el.className = ''; el.innerHTML = ''; }, 5000);
   }
   function beep() {
     try {
@@ -4746,7 +4826,7 @@ const DATA = {
     const heads = ['단기', '30분', '1시간', '2시간', '3시간'];
     const rolls = [1, 3, 7, 15, 24];
     const odds = kinds.map((k) => G.gatherOdds(k, areaId));
-    const rars = ['common', 'uncommon', 'rare', 'legendary'].filter((r) => odds[0][r] !== undefined);
+    const rars = ['common', 'uncommon', 'rare', 'epic', 'legendary'].filter((r) => odds[0][r] !== undefined);
     let h = '<div class="tblwrap"><table class="tbl"><thead><tr><th>등급</th>' + heads.map((x) => '<th>' + x + '</th>').join('') + '</tr></thead><tbody>';
     h += '<tr><td>수확 재료 수</td>' + rolls.map((n) => '<td>' + n + '개</td>').join('') + '</tr>';
     rars.forEach((r) => {
@@ -5548,6 +5628,11 @@ const DATA = {
     return h + '</div>';
   }
 
+  // 한 번 만든 물약의 재료 조합. 누르면 조합 탭의 재료 칸이 그 조합으로 채워진다.
+  function comboHtml(recipeKey) {
+    return G.comboFor(recipeKey).map((ids) =>
+      '<div class="desc">' + ids.map(herbName).join(' + ') + ' <button class="btn small ghost" data-act="fill-recipe" data-ids="' + ids.join(',') + '">이 조합으로 채우기</button></div>').join('');
+  }
   function bookRecipes() {
     const book = G.recipeBook();
     const found = book.filter((b) => b.discovered).length;
@@ -5557,7 +5642,7 @@ const DATA = {
       const n = list.filter((b) => b.discovered).length;
       h += '<details><summary>' + TIER[t] + ' · ' + n + '/' + list.length + '</summary><div class="rows">' +
         list.map((b) => b.discovered
-          ? '<div class="row"><div class="info"><div class="name">' + b.name + ' <span class="sub">성공 확률 ' + b.chance + '%</span></div><div class="desc">' + b.ingredients.join(' + ') + '</div><div class="desc">' + b.description + '</div></div></div>'
+          ? '<div class="row"><div class="info"><div class="name">' + b.name + ' <span class="sub">성공 확률 ' + b.chance + '%</span></div>' + comboHtml(G.potions[b.id].recipeKey) + '<div class="desc">' + b.description + '</div></div></div>'
           : '<div class="row dim"><div class="info"><div class="name">???</div><div class="desc">' + b.hint + '</div></div></div>').join('') +
         '</div></details>';
     });
@@ -5565,7 +5650,7 @@ const DATA = {
     h += '<details><summary>자유 조합 · ' + fb.found.length + '/' + fb.total + '</summary><div class="rows">' +
       (fb.found.length ? fb.found.map((p) =>
         '<div class="row"><div class="info"><div class="name">' + p.name + ' <span class="sub">' + TIER[p.tier] + ' · 성공 확률 ' + G._chanceFor(p) + '%</span></div>' +
-        '<div class="desc">기운 ' + [p.primary, p.secondary, p.tertiary].filter(Boolean).join('·') + '</div><div class="desc">' + p.description + '</div></div></div>').join('')
+        '<div class="desc">기운 ' + [p.primary, p.secondary, p.tertiary].filter(Boolean).join('·') + '</div>' + (comboHtml(p.recipeKey) || '<div class="desc">만든 조합이 기록되기 전에 발견한 물약이다. 다시 만들면 재료가 기록된다.</div>') + '<div class="desc">' + p.description + '</div></div></div>').join('')
         : '<div class="empty">아직 발견한 자유 조합이 없다. 아무 재료나 섞어 보자.</div>') + '</div></details>';
     return h;
   }
@@ -6008,6 +6093,12 @@ const DATA = {
       if (i >= 0) picked.splice(i, 1); else if (picked.length < G.maxIngredients()) picked.push(id);
     },
     'clear-pick'() { picked = []; },
+    'fill-recipe'(el) {
+      picked = el.dataset.ids.split(',').filter((id) => G.herbs[id]).slice(0, G.maxIngredients());
+      UI.tab = 'brew'; UI.brewMode = 'potion';
+      const lack = picked.filter((id) => G.herbCount(id) < 1).map(herbName);
+      log('재료 칸을 채웠다.' + (lack.length ? ' 부족한 재료: ' + lack.join(', ') : ''), lack.length ? 'bad' : '');
+    },
     mix() {
       const ids = picked.slice();
       const r = G.brew(ids);
