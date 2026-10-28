@@ -222,7 +222,9 @@ b.gold { font-weight: 400; font-family: var(--font-mono); font-variant-numeric: 
 .row.dim { opacity: 0.6; }
 .row .actions { flex-wrap: nowrap; }
 .rar { font-size: 0.75em; letter-spacing: 0.06em; }
-.rar.common { color: var(--r1); } .rar.uncommon { color: var(--r2); } .rar.rare { color: var(--r3); } .rar.epic { color: var(--r5); } .rar.legendary { color: var(--r4); }
+.rar.common { color: var(--r1); } .rar.uncommon { color: var(--r2); } .rar.rare { color: var(--r3); } .rar.epic { color: var(--r5); font-weight: 700; }
+.name:has(> .rar.epic) { color: var(--r5); }
+.pick button.c-epic { color: var(--r5); } .rar.legendary { color: var(--r4); }
 .sig { color: var(--warn); font-size: 0.8em; }
 .cnt { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .notice { padding: 10px 14px; border: 1px solid var(--line-strong); border-left: 4px solid var(--warn); border-radius: var(--rad-sm); font-size: 0.9em; background: var(--surface-2); }
@@ -4480,7 +4482,7 @@ const DATA = {
   }
 
   let T = null;            //{ minutes, total(ms), endAt(ms) }  장기 채집 타이머
-  const UI = { tab: 'main', brewMode: 'potion', marketMode: 'sell', bookMode: 'recipe', goodsFilter: '*',
+  const UI = { tab: 'main', brewMode: 'potion', marketMode: 'sell', bookMode: 'recipe', bookRar: '*',goodsFilter: '*',
     bagCat: '*', pickCat: '*', sellCat: '*', bookCat: '*', pickQ: '', bagMode: 'item', potTier: '*', potQ: '', mapZoom: 1, ov: null, goodQ: '' };
   let picked = [];
   let fast = true;
@@ -5655,14 +5657,30 @@ const DATA = {
     return h;
   }
 
+  // 재료 분류표: 등급(전설→일반) × 종류. 칸마다 "발견 / 전체"
+  function rarityTable() {
+    const seen = G.state.seen, cats = CAT_ORDER.filter((c) => G.herbList.some((x) => x.cat === c));
+    let h = '<div class="tblwrap"><table class="tbl"><thead><tr><th>등급</th>' + cats.map((c) => '<th>' + CATN[c] + '</th>').join('') + '<th>합계</th><th>값(G)</th></tr></thead><tbody>';
+    RORDER.slice().reverse().forEach((r) => {
+      const all = G.herbList.filter((x) => x.rarity === r);
+      const prices = all.map((x) => x.price);
+      h += '<tr><td>' + rarSpan(r).replace('class="rar', 'style="font-size:1em" class="rar') + '</td>' + cats.map((c) => {
+        const l = all.filter((x) => x.cat === c), n = l.filter((x) => seen[x.id]).length;
+        return '<td' + (l.length ? '' : ' class="zero"') + '>' + (l.length ? n + '/' + l.length : '-') + '</td>';
+      }).join('') + '<td>' + all.filter((x) => seen[x.id]).length + '/' + all.length + '</td><td>' + (prices.length ? Math.min.apply(null, prices) + '~' + Math.max.apply(null, prices) : '-') + '</td></tr>';
+    });
+    return h + '</tbody></table></div>';
+  }
   function bookItems() {
     const where = {};
     G.areaOrder.forEach((aid) => G.areas[aid].herbs.forEach((id) => { (where[id] = where[id] || []).push(G.areas[aid].name); }));
     const seen = G.state.seen;
     const total = G.herbList.length, got = G.herbList.filter((h) => seen[h.id]).length;
-    let h = '<p class="note">발견한 재료 ' + got + ' / ' + total + '. 한 번이라도 손에 넣은 재료가 기록된다.</p>' + catBar('bookCat');
+    let h = '<p class="note">발견한 재료 ' + got + ' / ' + total + '. 한 번이라도 손에 넣은 재료가 기록된다.</p>' + rarityTable() +
+      seg('bookRar', [['*', '모든 등급']].concat(RORDER.slice().reverse().map((r) => [r, RAR[r]]))) + '<div style="height:8px"></div>' + catBar('bookCat');
     CAT_ORDER.filter((c) => UI.bookCat === '*' || UI.bookCat === c).forEach((c) => {
-      const list = G.herbList.filter((x) => x.cat === c).sort(itemSort);
+      const list = G.herbList.filter((x) => x.cat === c && (UI.bookRar === '*' || x.rarity === UI.bookRar)).sort(itemSort);
+      if (!list.length) return;
       const n = list.filter((x) => seen[x.id]).length;
       h += '<details><summary>' + CATN[c] + ' · ' + n + '/' + list.length + '</summary><div class="rows">' +
         list.map((x) => seen[x.id]
